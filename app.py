@@ -162,8 +162,16 @@ def create_app(db_path=None, secret_key=None):
             i["amount_cents"] for i in invoices
             if i["status"] in ("outstanding", "overdue")
         )
+        # Tallest bar in the chart. `or [1]` keeps an empty org from dividing
+        # by zero rather than special-casing it in the template.
+        chart_max = max(
+            [f["revenue_cents"] for f in figures]
+            + [f["expenses_cents"] for f in figures]
+            or [1]
+        )
         return render_template(
             "dashboard.html",
+            chart_max=chart_max,
             figures=figures,
             invoices=invoices,
             total_revenue=total_revenue,

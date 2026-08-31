@@ -11,6 +11,30 @@
   <div class="tile"><div class="label">Unpaid invoices</div><div class="value">{{ outstanding | money }}</div></div>
 </div>
 
+<h2>Revenue and expenses by month</h2>
+<div class="chart">
+  <svg viewBox="0 0 720 200" role="img"
+       aria-label="Monthly revenue and expenses for {{ g.org.name }}. The same figures are listed in the table below.">
+    {% for f in figures %}
+      {% set x = loop.index0 * 60 + 12 %}
+      {% set rh = f.revenue_cents * 140 // chart_max %}
+      {% set eh = f.expenses_cents * 140 // chart_max %}
+      <rect class="bar-revenue" x="{{ x }}" y="{{ 160 - rh }}" width="22" height="{{ rh }}" rx="2">
+        <title>{{ f.month }} revenue {{ f.revenue_cents | money }}</title>
+      </rect>
+      <rect class="bar-expenses" x="{{ x + 24 }}" y="{{ 160 - eh }}" width="22" height="{{ eh }}" rx="2">
+        <title>{{ f.month }} expenses {{ f.expenses_cents | money }}</title>
+      </rect>
+      <text x="{{ x + 23 }}" y="176" text-anchor="middle">{{ f.month[-2:] }}</text>
+    {% endfor %}
+    <line x1="8" y1="160" x2="712" y2="160" class="baseline"></line>
+  </svg>
+  <p class="legend">
+    <span class="swatch revenue"></span> Revenue
+    <span class="swatch expenses"></span> Expenses
+  </p>
+</div>
+
 <h2>Monthly figures</h2>
 <table>
   <thead><tr><th>Month</th><th class="num">Revenue</th><th class="num">Expenses</th><th class="num">Net</th></tr></thead>

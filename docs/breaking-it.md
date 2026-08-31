@@ -158,8 +158,8 @@ it buys confidence it has not earned.
 
 - **Demo credentials in `seed.py`, live on a public URL, printed to the deploy
   log.** The credentials and the data they unlock are fictional by design and
-  intended to be published deliberately, so there is nothing to protect. Noted in
-  the README rather than fixed.
+  published deliberately, so there is nothing to protect. Noted in the README
+  rather than fixed.
 - **No server-side session revocation.** A stolen cookie stays valid for the
   full 8 hours even after logout. Real, bounded, requires prior cookie theft, and
   documented with the fix named (`session_version` column on `users`).

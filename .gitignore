@@ -4,3 +4,10 @@ __pycache__/
 portal.db
 .venv/
 .claude/
+
+# Private working notes: spec, plan, session context, task list.
+# These are written to me, not to anyone cloning this repo.
+SPEC.md
+CLAUDE.md
+TODO.md
+docs/superpowers/

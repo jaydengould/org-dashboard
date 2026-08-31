@@ -54,3 +54,27 @@ def test_money_formatting_uses_no_floats():
     assert app_module.money(5) == "$0.05"
     assert app_module.money(-1234) == "-$12.34"
     assert app_module.money(0) == "$0.00"
+
+
+def test_dashboard_renders_a_chart_with_one_bar_pair_per_month(client_a):
+    body = client_a.get("/dashboard").data.decode()
+    assert "<svg" in body
+    assert body.count('class="bar-revenue"') == 12
+    assert body.count('class="bar-expenses"') == 12
+
+
+def test_chart_does_not_require_javascript(client_a):
+    body = client_a.get("/dashboard").data.decode()
+    assert "<script" not in body
+
+
+def test_chart_bars_are_proportional_to_the_data(client_a):
+    """The tallest bar must belong to the largest figure, not to whatever
+    happened to be last."""
+    import re
+
+    body = client_a.get("/dashboard").data.decode()
+    revenues = [int(h) for h in re.findall(r'class="bar-revenue"[^>]*height="(\d+)"', body)]
+    assert len(revenues) == 12
+    peak_month_index = seed.ORGS[0][5].index(max(seed.ORGS[0][5]))
+    assert revenues.index(max(revenues)) == peak_month_index
