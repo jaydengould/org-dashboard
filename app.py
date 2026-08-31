@@ -9,6 +9,7 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import db
+import seed
 
 # Endpoints reachable without a session. Everything not listed here is
 # protected by require_login below. Adding a route makes it protected by
@@ -47,6 +48,15 @@ def create_app(db_path=None, secret_key=None):
     )
     app.teardown_appcontext(db.close_conn)
     app.jinja_env.filters["money"] = money
+
+    # Render's free tier has no persistent disk, so the database is rebuilt on
+    # every boot. Doing that here rather than in the start command means the app
+    # is correct however it is launched: a start command lives in a dashboard,
+    # is not under test, and can drift from the repo without anyone noticing.
+    # seed.build is idempotent and returns immediately once data exists.
+    # ponytail: safe because the service runs --workers 1; with several workers
+    # this would need a file lock or a migration step run before boot.
+    seed.build(app.config["DB_PATH"])
 
     def csrf_token():
         if "csrf_token" not in session:

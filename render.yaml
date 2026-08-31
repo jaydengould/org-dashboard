@@ -4,7 +4,9 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python seed.py && gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 1
+    # The app seeds itself at startup (see create_app), so this stays a plain
+    # server command and cannot drift out of step with the code.
+    startCommand: gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 1
     healthCheckPath: /healthz
     envVars:
       - key: SECRET_KEY
