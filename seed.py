@@ -81,6 +81,7 @@ CREDENTIALS = [(org[2], org[3]) for org in ORGS]
 
 
 def build(path):
+    """Create the schema if absent and populate it once. True if it inserted."""
     conn = db.connect(path)
     has_schema = conn.execute(
         "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'organizations'"
@@ -89,7 +90,7 @@ def build(path):
         db.init(conn)
     if conn.execute("SELECT count(*) FROM organizations").fetchone()[0]:
         conn.close()
-        return
+        return False
 
     org_ids = []
     for name, fye, email, password, _prefix, revenue, expenses in ORGS:
@@ -119,11 +120,16 @@ def build(path):
 
     conn.commit()
     conn.close()
+    return True
 
 
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("DB_PATH", "portal.db")
-    build(target)
-    print(f"seeded {target}")
+    # The wording matters: this runs on every Render boot and is the first
+    # thing you read in the deploy log when something looks wrong.
+    if build(target):
+        print(f"seeded {target}")
+    else:
+        print(f"{target} already populated, nothing to do")
     for email, password in CREDENTIALS:
         print(f"  {email} / {password}")
