@@ -123,6 +123,21 @@ def create_app(db_path=None, secret_key=None):
         session.permanent = True
         return redirect(url_for("dashboard"))
 
+    @app.route("/invoices/<int:invoice_id>")
+    def invoice_detail(invoice_id):
+        rows = db.query(
+            "SELECT id, number, counterparty, issued_on, amount_cents, status"
+            " FROM invoices WHERE org_id = :org_id AND id = :invoice_id",
+            invoice_id=invoice_id,
+        )
+        if not rows:
+            # 404, not 403: a 403 would confirm that another org's invoice
+            # exists. This response is identical to a genuinely missing row.
+            # There is deliberately no custom 404 handler, so both cases render
+            # Flask's default page, which carries no session or org context.
+            abort(404)
+        return render_template("invoice.html", invoice=rows[0])
+
     @app.route("/logout", methods=["POST"])
     def logout():
         session.clear()

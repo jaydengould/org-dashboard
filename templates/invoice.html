@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ invoice.number }}{% endblock %}
+{% block content %}
+<h1>Invoice {{ invoice.number }}</h1>
+<table>
+  <tr><th>Counterparty</th><td>{{ invoice.counterparty }}</td></tr>
+  <tr><th>Issued</th><td>{{ invoice.issued_on }}</td></tr>
+  <tr><th>Amount</th><td class="num">{{ invoice.amount_cents | money }}</td></tr>
+  <tr><th>Status</th><td>{{ invoice.status }}</td></tr>
+</table>
+<p><a href="{{ url_for('dashboard') }}">Back to dashboard</a></p>
+{% endblock %}
