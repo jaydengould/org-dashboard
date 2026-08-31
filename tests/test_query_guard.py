@@ -49,3 +49,19 @@ def test_query_without_org_id_in_g_raises(tmp_path):
         # db.query itself is missing, which is a vacuous pass in a security test.
         with pytest.raises(AttributeError, match="org_id"):
             db.query("SELECT id FROM invoices WHERE org_id = :org_id")
+
+
+def test_query_treats_an_unstorable_integer_as_no_match(tmp_path):
+    """sqlite3 raises OverflowError for ints wider than 64 bits. A value that
+    cannot be stored cannot match a row, so the correct answer is no rows."""
+    app = _app(tmp_path)
+    with app.app_context():
+        conn = db.get_conn()
+        conn.execute("INSERT INTO organizations (id, name, fiscal_year_end) VALUES (1, 'A', '12-31')")
+        conn.commit()
+    with app.test_request_context():
+        g.org_id = 1
+        assert db.query(
+            "SELECT id FROM invoices WHERE org_id = :org_id AND id = :invoice_id",
+            invoice_id=10**20,
+        ) == []

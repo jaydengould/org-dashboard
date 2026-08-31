@@ -73,14 +73,42 @@ def test_a_replayed_session_cookie_still_cannot_cross_the_boundary(app, client_a
     assert replay.get(f"/invoices/{foreign}").status_code == 404  # and still scoped
 
 
-def test_a_tampered_session_cookie_is_rejected_outright(app, client_a):
-    """Flipping one byte of the signature logs you out; it does not promote you."""
+def test_a_tampered_session_signature_is_rejected_outright(app, client_a):
+    """Altering the signature logs you out; it does not promote you.
+
+    The mutated character is in the middle of the signature, not at the end:
+    base64's final character carries only a couple of significant bits, so
+    several different trailing characters decode to the same signature bytes.
+    Flipping the last character is a coin toss, not a test.
+    """
     value = client_a.get_cookie("session").value
-    tampered = value[:-1] + ("a" if value[-1] != "a" else "b")
+    head, _, signature = value.rpartition(".")
+    mid = len(signature) // 2
+    swapped = "A" if signature[mid] != "A" else "B"
     forged = app.test_client()
-    forged.set_cookie("session", tampered)
+    forged.set_cookie("session", f"{head}.{signature[:mid]}{swapped}{signature[mid + 1:]}")
     resp = forged.get("/dashboard")
     assert resp.status_code == 302
+    assert "/login" in resp.headers["Location"]
+
+
+def test_a_rewritten_cookie_payload_cannot_promote_you_to_another_tenant(app, client_a):
+    """Edit the cookie to claim org B's user id, keep org A's signature."""
+    import base64
+    import json
+
+    conn = db.connect(app.config["DB_PATH"])
+    b_user_id = conn.execute(
+        "SELECT id FROM users WHERE email = ?", (B_EMAIL,)
+    ).fetchone()[0]
+    raw = json.dumps({"user_id": b_user_id}, separators=(",", ":")).encode()
+    payload = base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+    _old_payload, _, signature_part = client_a.get_cookie("session").value.partition(".")
+    forged = app.test_client()
+    forged.set_cookie("session", f"{payload}.{signature_part}")
+    resp = forged.get("/dashboard")
+    assert resp.status_code == 302, "a rewritten payload was accepted"
     assert "/login" in resp.headers["Location"]
 
 
@@ -106,3 +134,12 @@ def test_every_get_route_is_public_by_declaration_or_protected(app):
         assert resp.status_code == 302 and "/login" in resp.headers["Location"], (
             f"{rule.endpoint} ({url}) is neither declared public nor protected"
         )
+
+
+def test_an_out_of_range_invoice_id_is_a_plain_404(app, client_a):
+    """SQLite integers are 64-bit. A larger id cannot match any row, so it must
+    behave like any other miss rather than raising a 500."""
+    huge = client_a.get("/invoices/99999999999999999999")
+    miss = client_a.get("/invoices/999999")
+    assert huge.status_code == 404
+    assert huge.data == miss.data

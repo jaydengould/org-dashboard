@@ -53,7 +53,13 @@ def query(sql, **params):
     if "org_id" in params:
         raise ValueError("org_id comes from the session, not from the caller")
     params["org_id"] = g.org_id  # AttributeError here means no authenticated org: fail closed
-    return get_conn().execute(sql, params).fetchall()
+    try:
+        return get_conn().execute(sql, params).fetchall()
+    except OverflowError:
+        # SQLite integers are 64-bit. A value too wide to store cannot match any
+        # stored row, so the honest answer is "no rows" rather than a 500. Keeps
+        # /invoices/<huge> indistinguishable from any other miss.
+        return []
 
 
 # --- Identity lookups -------------------------------------------------------
