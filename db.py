@@ -38,3 +38,44 @@ def close_conn(exc=None):
     conn = g.pop("conn", None)
     if conn is not None:
         conn.close()
+
+
+def query(sql, **params):
+    """The only way application code reads tenant tables.
+
+    Refuses SQL with no tenant predicate, and binds :org_id itself from the
+    session-derived g.org_id so that no request input can reach it.
+    """
+    if ":org_id" not in sql:
+        raise ValueError(
+            "unscoped query: SQL passed to db.query must filter on org_id = :org_id"
+        )
+    if "org_id" in params:
+        raise ValueError("org_id comes from the session, not from the caller")
+    params["org_id"] = g.org_id  # AttributeError here means no authenticated org: fail closed
+    return get_conn().execute(sql, params).fetchall()
+
+
+# --- Identity lookups -------------------------------------------------------
+# These three deliberately bypass query(). They run *before* an org is known
+# (get_user, get_user_by_email) or read the organizations table itself
+# (get_org), so there is no org_id to scope by. They are the only unscoped
+# reads in the application and they never touch a tenant table.
+
+def get_user(user_id):
+    return get_conn().execute(
+        "SELECT id, org_id, email FROM users WHERE id = :id", {"id": user_id}
+    ).fetchone()
+
+
+def get_user_by_email(email):
+    return get_conn().execute(
+        "SELECT id, password_hash FROM users WHERE email = :email", {"email": email}
+    ).fetchone()
+
+
+def get_org(org_id):
+    return get_conn().execute(
+        "SELECT id, name, fiscal_year_end FROM organizations WHERE id = :id",
+        {"id": org_id},
+    ).fetchone()
