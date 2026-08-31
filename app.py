@@ -1,4 +1,6 @@
+import hmac
 import os
+import secrets
 from datetime import timedelta
 
 from flask import (
@@ -45,6 +47,27 @@ def create_app(db_path=None, secret_key=None):
     )
     app.teardown_appcontext(db.close_conn)
     app.jinja_env.filters["money"] = money
+
+    def csrf_token():
+        if "csrf_token" not in session:
+            session["csrf_token"] = secrets.token_urlsafe(32)
+        return session["csrf_token"]
+
+    app.jinja_env.globals["csrf_token"] = csrf_token
+
+    @app.before_request
+    def check_csrf():
+        """Registered before require_login so it also covers the public POST /login."""
+        if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
+            return None
+        stored = session.get("csrf_token")
+        sent = request.form.get("csrf_token", "")
+        # `stored` must be truthy first: hmac.compare_digest("", "") is True,
+        # which would wave through a request with no token when the session has
+        # none either.
+        if not stored or not hmac.compare_digest(sent, stored):
+            abort(400)
+        return None
 
     @app.before_request
     def require_login():
@@ -99,6 +122,11 @@ def create_app(db_path=None, secret_key=None):
         session["user_id"] = row["id"]
         session.permanent = True
         return redirect(url_for("dashboard"))
+
+    @app.route("/logout", methods=["POST"])
+    def logout():
+        session.clear()
+        return redirect(url_for("login"))
 
     @app.route("/dashboard")
     def dashboard():
