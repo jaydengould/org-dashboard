@@ -1,0 +1,23 @@
+:root { --ink: #1c1c1c; --rule: #d8d4cc; --bg: #faf9f6; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 15px/1.5 ui-sans-serif, system-ui, "Helvetica Neue", sans-serif; }
+header { display: flex; justify-content: space-between; align-items: baseline;
+         padding: 12px 24px; border-bottom: 1px solid var(--rule); }
+.brand { font-weight: 600; }
+.org { color: #5a5a5a; }
+main { max-width: 900px; margin: 0 auto; padding: 24px; }
+h1 { font-size: 22px; margin: 0 0 20px; }
+label { display: block; margin-bottom: 12px; }
+input { display: block; width: 260px; padding: 6px; margin-top: 4px;
+        border: 1px solid var(--rule); border-radius: 3px; }
+button { padding: 7px 16px; border: 1px solid var(--ink); background: var(--ink);
+         color: #fff; border-radius: 3px; cursor: pointer; }
+.error { color: #a3352a; }
+table { border-collapse: collapse; width: 100%; margin-bottom: 28px; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--rule); text-align: left; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tiles { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+.tile { border: 1px solid var(--rule); border-radius: 4px; padding: 12px 16px; min-width: 170px; }
+.tile .label { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #5a5a5a; }
+.tile .value { font-size: 20px; font-variant-numeric: tabular-nums; }
