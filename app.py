@@ -130,6 +130,31 @@ def create_app(db_path=None, secret_key=None):
 
     @app.route("/dashboard")
     def dashboard():
-        return render_template("dashboard.html")
+        # These two queries are the entire tenant-data surface of the
+        # application. Both carry `org_id = :org_id`; db.query supplies the
+        # value, from the session, and refuses to run without it.
+        figures = db.query(
+            "SELECT month, revenue_cents, expenses_cents FROM monthly_figures"
+            " WHERE org_id = :org_id ORDER BY month"
+        )
+        invoices = db.query(
+            "SELECT id, number, counterparty, issued_on, amount_cents, status"
+            " FROM invoices WHERE org_id = :org_id ORDER BY issued_on DESC"
+        )
+        total_revenue = sum(f["revenue_cents"] for f in figures)
+        total_expenses = sum(f["expenses_cents"] for f in figures)
+        outstanding = sum(
+            i["amount_cents"] for i in invoices
+            if i["status"] in ("outstanding", "overdue")
+        )
+        return render_template(
+            "dashboard.html",
+            figures=figures,
+            invoices=invoices,
+            total_revenue=total_revenue,
+            total_expenses=total_expenses,
+            net=total_revenue - total_expenses,
+            outstanding=outstanding,
+        )
 
     return app

@@ -1,2 +1,45 @@
 {% extends "base.html" %}
-{% block content %}<h1>{{ g.org.name }}</h1>{% endblock %}
+{% block title %}{{ g.org.name }}{% endblock %}
+{% block content %}
+<h1>{{ g.org.name }}</h1>
+<p>Financial year ends {{ g.org.fiscal_year_end }}. Figures cover the last twelve months.</p>
+
+<div class="tiles">
+  <div class="tile"><div class="label">Revenue</div><div class="value">{{ total_revenue | money }}</div></div>
+  <div class="tile"><div class="label">Expenses</div><div class="value">{{ total_expenses | money }}</div></div>
+  <div class="tile"><div class="label">Net</div><div class="value">{{ net | money }}</div></div>
+  <div class="tile"><div class="label">Unpaid invoices</div><div class="value">{{ outstanding | money }}</div></div>
+</div>
+
+<h2>Monthly figures</h2>
+<table>
+  <thead><tr><th>Month</th><th class="num">Revenue</th><th class="num">Expenses</th><th class="num">Net</th></tr></thead>
+  <tbody>
+  {% for f in figures %}
+    <tr>
+      <td>{{ f.month }}</td>
+      <td class="num">{{ f.revenue_cents | money }}</td>
+      <td class="num">{{ f.expenses_cents | money }}</td>
+      <td class="num">{{ (f.revenue_cents - f.expenses_cents) | money }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Invoices</h2>
+<table>
+  <thead><tr><th>Number</th><th>Counterparty</th><th>Issued</th><th class="num">Amount</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for i in invoices %}
+    <tr>
+      {# ponytail: plain text until Task 8 adds the invoice_detail route #}
+      <td>{{ i.number }}</td>
+      <td>{{ i.counterparty }}</td>
+      <td>{{ i.issued_on }}</td>
+      <td class="num">{{ i.amount_cents | money }}</td>
+      <td>{{ i.status }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
